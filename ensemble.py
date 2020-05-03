@@ -26,8 +26,8 @@ class ensemble:
                                             damped = True,
                                             seasonal='mul',
                                             seasonal_periods=self.periods).fit()
-        output = model.predict(start = 1, end = len(y) + self.forecast_horizon)
-        fitted = output[:len(y)]
+        output = model.predict(start = 1, end = len(series) + self.forecast_horizon)
+        fitted = output[:len(series)]
         predictions = output[-self.forecast_horizon:]
         
         return fitted, predictions
@@ -45,7 +45,7 @@ class ensemble:
         return fitted, predictions
     
     def fit_arima(self, series):
-        model = pm.auto_arima(y, start_p=1, start_q=1,
+        model = pm.auto_arima(series, start_p=1, start_q=1,
                                max_p=2, max_q=2, m=12,
                                start_P=0, seasonal=False,
                                d=1, D=1, trace=False,
@@ -74,10 +74,10 @@ class ensemble:
     
     def fit(self):
         output = {}
-        output['lp_results'] = ens.fit_lp(self.series)
-        output['arima_results'] = ens.fit_arima(self.series)
-        output['naive_results'] = ens.fit_naive(self.series)
-        output['ets_results'] = ens.fit_ets(self.series)
+        output['lp_results'] = self.fit_lp(self.series)
+        output['arima_results'] = self.fit_arima(self.series)
+        output['naive_results'] = self.fit_naive(self.series)
+        output['ets_results'] = self.fit_ets(self.series)
         
         return output
         
