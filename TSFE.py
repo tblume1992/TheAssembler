@@ -103,6 +103,7 @@ class FeatureExtraction:
     def calc_seasonal_acf(self):
         return self.seasonal_acf[1]
     
+    #ToDo
     #def calc_flat_spots(self):
         
     
@@ -169,11 +170,58 @@ class FeatureExtraction:
 
     def calc_kpss(self):
         return sm.tsa.stattools.kpss(self.series, lags = 1)[0]
+    
+    def calc_mean_abs_change(self):
+        return np.mean(np.abs(np.diff(self.series)))
+    
+    def calc_mean_gradient(self):
+        return np.mean(np.gradient(self.series))
+    
+    def calc_std_gradient(self):
+        return np.std(np.gradient(self.series))
+    
+    def calc_mean_median_diff(self):
+        return np.mean(self.series) - np.median(self.series)
+
+    def calc_skewness(self):
+        return self.series.skew()
+    
+    def calc_kurtosis(self):
+        return self.series.kurtosis()
+    
+    def calc_reoccurring_perc(self):
+        return len(self.series.unique())/len(self.series)
+    
+    #from tsfresh, thank you!
+    @staticmethod
+    def _roll(a, shift):
+        if not isinstance(a, np.ndarray):
+            a = np.asarray(a)
+        idx = shift % len(a)
+        return np.concatenate([a[-idx:], a[:-idx]])
+    
+    def calc_number_peaks(self):
+        n = 3
+        x = np.asarray(self.series)
+        x_reduced = x[n:-n]
+    
+        res = None
+        for i in range(1, n + 1):
+            result_first = (x_reduced > FeatureExtraction._roll(x, i)[n:-n])
+    
+            if res is None:
+                res = result_first
+            else:
+                res &= result_first
+    
+            res &= (x_reduced > FeatureExtraction._roll(x, -i)[n:-n])
+        return np.sum(res)
+    #Too time consuming, vectorized implementation seems wonky
 # =============================================================================
 #     def calc_lp_spike(self):
 #         leave_one_out = [self.lp_remainder.drop(i).var() for i in range(len(self.lp_remainder))]
 #         
-#         return np.std(leave_one_out)
+#         return np.var(leave_one_out)
 # =============================================================================
     
     def extract(self):
