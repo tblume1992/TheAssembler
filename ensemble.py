@@ -38,11 +38,18 @@ class ensemble:
         
         return fitted, predictions
 
-    def fit_seasonal_naive(self, series):
-        fitted = series
-        predictions = np.resize(series[-1], self.forecast_horizon)
+    def fit_mean(self, series):
+        fitted = np.resize(np.mean(series), len(series))
+        predictions = np.resize(np.mean(series), self.forecast_horizon)
         
         return fitted, predictions
+    
+    def fit_seasonal_naive(self, series):
+        fitted = series
+        predictions = np.resize(series[-self.periods:], self.forecast_horizon)
+        
+        return fitted, predictions
+    
     
     def fit_arima(self, series):
         model = pm.auto_arima(series, start_p=1, start_q=1,
@@ -72,12 +79,33 @@ class ensemble:
         
         return fitted, predictions
     
+    def fit_mean_lp(self, series):
+        boosted_model = lp.LazyProphet(freq = 0, 
+                                    estimator = 'mean',
+                                    max_boosting_rounds = 50,
+                                    approximate_splits = True,
+                                    regularization = 1.2,
+                                    global_cost = 'mbic',
+                                    split_cost = 'mse',
+                                    seasonal_smoothing = 15
+                                    )
+        output = boosted_model.fit(series)
+        fitted = output['yhat']
+        predictions = boosted_model.extrapolate(self.forecast_horizon)
+        
+        return fitted, predictions
+    
+    
     def fit(self):
         output = {}
-        output['lp_results'] = self.fit_lp(self.series)
-        output['arima_results'] = self.fit_arima(self.series)
-        output['naive_results'] = self.fit_naive(self.series)
-        output['ets_results'] = self.fit_ets(self.series)
+        output['lp_results'] = ens.fit_lp(self.series)
+        output['mean_lp_results'] = ens.fit_mean_lp(self.series)
+        output['arima_results'] = ens.fit_arima(self.series)
+        output['naive_results'] = ens.fit_naive(self.series)
+        output['ets_results'] = ens.fit_ets(self.series)
+        output['mean_results'] = ens.fit_mean(self.series)
+        output['seasonal_naive_results'] = ens.fit_seasonal_naive(self.series)
+        
         
         return output
         
