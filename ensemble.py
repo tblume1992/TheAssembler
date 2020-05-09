@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 import pmdarima as pm
 import LazyProphet as lp
-
+import multiprocessing as mp
 import warnings
 warnings.simplefilter("ignore")
 
@@ -98,16 +98,32 @@ class ensemble:
     
     def fit(self):
         output = {}
-        output['lp_results'] = ens.fit_lp(self.series)
-        output['mean_lp_results'] = ens.fit_mean_lp(self.series)
-        output['arima_results'] = ens.fit_arima(self.series)
-        output['naive_results'] = ens.fit_naive(self.series)
-        output['ets_results'] = ens.fit_ets(self.series)
-        output['mean_results'] = ens.fit_mean(self.series)
-        output['seasonal_naive_results'] = ens.fit_seasonal_naive(self.series)
+        output['lp_results'] = self.fit_lp(self.series)
+        output['mean_lp_results'] = self.fit_mean_lp(self.series)
+        output['arima_results'] = self..fit_arima(self.series)
+        output['naive_results'] = self.fit_naive(self.series)
+        output['ets_results'] = self.fit_ets(self.series)
+        output['mean_results'] = self.fit_mean(self.series)
+        output['seasonal_naive_results'] = self.fit_seasonal_naive(self.series)
         
         
         return output
+    
+    def multiprocess_fit(self, series):
+        output = {}
+        output['lp_results'] = self.fit_lp(series)
+        output['mean_lp_results'] = self.fit_mean_lp(series)
+        output['arima_results'] = self.fit_arima(series)
+        output['naive_results'] = self.fit_naive(series)
+        output['ets_results'] = self.fit_ets(series)
+        output['mean_results'] = self.fit_mean(series)
+        output['seasonal_naive_results'] = self.fit_seasonal_naive(series)
+        
+        return output
+        
+    def multiprocess(self):
+        with mp.Pool(mp.cpu_count()-2) as p:
+            results = list(tqdm(p.imap(self.multiprocess_fit, self.series)))
         
 if __name__ == '__main__':       
     import quandl
