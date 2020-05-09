@@ -20,6 +20,12 @@ class FeatureExtraction:
         self.extract()
         
         return
+    
+    def scale_data(self):
+        series_min = np.min(self.series)
+        series_max = np.max(self.series)
+        series_mean = np.mean(self.series)
+        self.series = (self.series - series_mean)/(series_max - series_min)
         
     def get_differenced_series(self):
         self.diff_series = self.series.diff().dropna()
@@ -33,6 +39,12 @@ class FeatureExtraction:
         self.diff_acf = sm.tsa.stattools.acf(self.diff_series, nlags = 10)
         self.diff_2_acf = sm.tsa.stattools.acf(self.diff_2_series, nlags = 10)
         self.seasonal_acf = sm.tsa.stattools.acf(self.seasonal_diff_series)
+        
+        return
+
+    def get_tiles(self):      
+        self.tiled = [self.series[i:i+self.n_season] for i in \
+                      range(0, len(self.series), self.n_season)]
         
         return
     
@@ -54,8 +66,8 @@ class FeatureExtraction:
         self.lp_coefs = self.lp_model.coefs[0]
         self.lp_deseasonalized = self.lp_output['y'] - self.lp_output['seasonality']
         self.lp_remainder = self.lp_output['y'] - self.lp_output['yhat']
-        
-        
+        self.lp_detrended = self.lp_output['y'] - self.lp_output['trend']
+          
         return
         
     
@@ -68,7 +80,7 @@ class FeatureExtraction:
         return poly[0]*2.0
        
     def calc_entropy(self):
-        return entropy(self.series)
+        return entropy(self.series + 10, base = 2)
     
     def calc_acf_10(self):
         return np.sum(self.acf[1:11]**2)
@@ -90,6 +102,9 @@ class FeatureExtraction:
     
     def calc_seasonal_acf(self):
         return self.seasonal_acf[1]
+    
+    #def calc_flat_spots(self):
+        
     
     def calc_pacf_10(self):
         return np.sum(self.pacf[1:11]**2)
@@ -120,23 +135,40 @@ class FeatureExtraction:
     def calc_seasonal_period(self):
         return self.period
     
-    def calc_nperiods(self):
-        return int(len(self.series)/self.period)
-    
     def calc_lp_curvature(self):
         return self.lp_coefs[1]
     
     def calc_lp_linearity(self):
         return self.lp_coefs[0]
     
-    def calc_cov(self):
-        return variation(self.series)
+    def calc_std(self):
+        return np.std(self.series)
     
     def calc_lp_trend(self):
         lp_trend = np.std(self.lp_remainder)**2 / np.std(self.lp_deseasonalized)**2
         
         return max((0, 1 - lp_trend))
     
+    def calc_lumpiness(self):
+        return np.var([np.var(i) for i in self.tiled])
+    
+    def calc_stability(self):
+        return np.var([np.mean(i) for i in self.tiled])
+    
+    def calc_n_seasons(self):
+        return self.n_season
+    
+    def calc_seasonal_strength(self):
+        return max(0, 1-(np.var(self.lp_remainder)/np.var(self.lp_detrended)))
+    
+    def calc_series_length(self):
+        return len(self.series)
+        
+    def calc_adf(self):
+        return sm.tsa.stattools.adfuller(self.series, maxlag = 1)[0]
+
+    def calc_kpss(self):
+        return sm.tsa.stattools.kpss(self.series, lags = 1)[0]
 # =============================================================================
 #     def calc_lp_spike(self):
 #         leave_one_out = [self.lp_remainder.drop(i).var() for i in range(len(self.lp_remainder))]
@@ -146,15 +178,25 @@ class FeatureExtraction:
     
     def extract(self):
         self.features = {}
+        self.scale_data()
         self.get_differenced_series()
+        self.n_season = int(len(self.series)/self.period)
         self.get_acf()
         self.get_pacf()
-        self.get_lazy_prophet_output()
+        self.get_tiles()
+        self.get_lazy_prophet_output()   
         for method in inspect.getmembers(FeatureExtraction, predicate=inspect.isfunction):
             if 'calc' in method[0]:
                 self.features[method[0]] = method[1](self)
                 
         return 
+        
+ # %%   
+if __name__ == '__main__':
+    import quandl
+    data = quandl.get("BITSTAMP/USD")
+    y = data['Low']
+    features = FeatureExtraction(y, period = 12).features
         
  # %%   
 if __name__ == '__main__':
