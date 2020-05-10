@@ -1,0 +1,26 @@
+    final = [i for i in results if i != 'error']
+    test_me = []
+    for i in range(len(train_me)):
+        if results[i] != 'error':
+            test_me.append(train_me[i][-70:])
+    model_list = results[0].keys()
+    test_error = pd.DataFrame(data = [[0]*len(model_list)]*len(test_me), columns = model_list)
+    for i in range(len(final)):
+        for key in final[i].keys():
+            if 'error' in key:
+                pass
+            else:
+                test_error[key][i] = np.sqrt((np.mean(test_me[i] - final[i][key][1])**2))
+    
+    def nan_all_but_min(df):
+        arr = df.values
+        idx = np.argmin(arr, axis=1)
+        newarr = np.full_like(arr, np.nan, dtype='float')
+        newarr[np.arange(arr.shape[0]), idx] = arr[np.arange(arr.shape[0]), idx]
+        df = pd.DataFrame(newarr, columns=df.columns, index=df.index)
+        return df
+        
+    class_dataset = nan_all_but_min(test_error)
+    for column in list(class_dataset):
+        class_dataset[column][class_dataset[column] >= 0] = column
+    class_dataset = pd.Series([class_dataset.iloc[i, :].dropna().values[0] for i in range(len(class_dataset))])
