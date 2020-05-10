@@ -125,6 +125,8 @@ class ensemble:
         with mp.Pool(mp.cpu_count()-2) as p:
             results = list(tqdm(p.imap(self.multiprocess_fit, self.series)))
         
+        return results
+        
 if __name__ == '__main__':       
     import quandl
     data = quandl.get("BITSTAMP/USD")
