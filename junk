@@ -24,3 +24,13 @@
     for column in list(class_dataset):
         class_dataset[column][class_dataset[column] >= 0] = column
     class_dataset = pd.Series([class_dataset.iloc[i, :].dropna().values[0] for i in range(len(class_dataset))])
+    
+    
+    
+    
+    #    X_features = []
+#    
+#    for i in tqdm(range(len(train_me))):
+#        if results[i] != 'error':
+#            X_features.append(fe.FeatureExtraction(train_me[i][:-70].astype(float), period = 365).features)
+#    X = pd.DataFrame(X_features)
